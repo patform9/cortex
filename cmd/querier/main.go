@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 
 	"google.golang.org/grpc"
