@@ -235,6 +235,13 @@ func (o *Overrides) MaxChunksPerQuery(userID string) int {
 	})
 }
 
+// MaxParallelChunkFetches returns the maximum number of chunk queries that can be ran in parallel
+func (o *Overrides) MaxParallelChunkFetches(userID string) int {
+	return o.getInt(userID, func(l *Limits) int {
+		return l.MaxParallelChunkFetches
+	})
+}
+
 // MaxQueryLength returns the limit of the length (in time) of a query.
 func (o *Overrides) MaxQueryLength(userID string) time.Duration {
 	return o.getDuration(userID, func(l *Limits) time.Duration {

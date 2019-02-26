@@ -9,9 +9,7 @@ import (
 	"github.com/cortexproject/cortex/pkg/chunk"
 )
 
-const maxParallel = 1000
-
-// GetParallelChunks fetches chunks in parallel (up to maxParallel).
+// GetParallelChunks fetches chunks in parallel (up to MaxParallelChunkFetches).
 func GetParallelChunks(ctx context.Context, chunks []chunk.Chunk, f func(context.Context, *chunk.DecodeContext, chunk.Chunk) (chunk.Chunk, error)) ([]chunk.Chunk, error) {
 	sp, ctx := ot.StartSpanFromContext(ctx, "GetParallelChunks")
 	defer sp.Finish()
@@ -29,7 +27,7 @@ func GetParallelChunks(ctx context.Context, chunks []chunk.Chunk, f func(context
 	processedChunks := make(chan chunk.Chunk)
 	errors := make(chan error)
 
-	for i := 0; i < max(maxParallel, len(chunks)); i++ {
+	for i := 0; i < min(ctx.limits.MaxParallelChunkFetches, len(chunks)); i++ {
 		go func() {
 			decodeContext := chunk.NewDecodeContext()
 			for c := range queuedChunks {
@@ -63,8 +61,8 @@ func GetParallelChunks(ctx context.Context, chunks []chunk.Chunk, f func(context
 	return result, lastErr
 }
 
-func max(a, b int) int {
-	if a > b {
+func min(a, b int) int {
+	if a < b {
 		return a
 	}
 	return b

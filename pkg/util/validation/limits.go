@@ -28,8 +28,9 @@ type Limits struct {
 	MaxSeriesPerMetric int `yaml:"max_series_per_metric"`
 
 	// Querier enforced limits.
-	MaxChunksPerQuery int           `yaml:"max_chunks_per_query"`
-	MaxQueryLength    time.Duration `yaml:"max_query_length"`
+	MaxChunksPerQuery       int           `yaml:"max_chunks_per_query"`
+	MaxParallelChunkFetches int           `yaml:"max_parallel_chunk_fetches"`
+	MaxQueryLength          time.Duration `yaml:"max_query_length"`
 
 	// Config for overrides, convenient if it goes here.
 	PerTenantOverrideConfig string
@@ -54,6 +55,7 @@ func (l *Limits) RegisterFlags(f *flag.FlagSet) {
 	f.IntVar(&l.MaxSeriesPerMetric, "ingester.max-series-per-metric", 50000, "Maximum number of active series per metric name.")
 
 	f.IntVar(&l.MaxChunksPerQuery, "store.query-chunk-limit", 2e6, "Maximum number of chunks that can be fetched in a single query.")
+	f.IntVar(&l.MaxParallelChunkFetches, "store.max-parallel-chunk-fetches", 1000, "Maximum number of chunk queries that can be ran in parallel")
 	f.DurationVar(&l.MaxQueryLength, "store.max-query-length", 0, "Limit to length of chunk store queries, 0 to disable.")
 
 	f.StringVar(&l.PerTenantOverrideConfig, "limits.per-user-override-config", "", "File name of per-user overrides.")
