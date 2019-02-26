@@ -61,12 +61,10 @@ make test
 
 To checkout Cortex in minikube:
 ```
-kubectl create -f ./k8s
+cd deploy/
+make demo
+kubectl create -f deployments/demo.yaml
 ```
-
-(these manifests use `latest` tags, i.e. this will work if you have
-just built the images and they are available on the node(s) in your
-Kubernetes cluster)
 
 Cortex will sit behind an nginx instance exposed on port 30080.  A job is deployed to scrape it itself.  Try it:
 
