@@ -16,16 +16,14 @@ local kube = import 'kube-libsonnet/kube.libsonnet';
 
     _postgres_pvc::
         local name = $._config.postgres.name + '-data';
-        kube.PersistentVolumeClaim(name) {
+        if $._config.postgres.usePersistentStorage
+        then kube.PersistentVolumeClaim(name) {
             metadata+: {
                 namespace: $._config.namespace,
             },
             storage: $._config.postgres.volumeSize
-        },
+        } else {},
 } + {
-    postgres_pvc:
-        $._postgres_pvc,
-
     postgres_deployment:
         local name = $._config.postgres.name;
         local labels = $._config.postgres.labels;
@@ -63,23 +61,32 @@ local kube = import 'kube-libsonnet/kube.libsonnet';
                 postgres: postgresContainer,
             },
             volumes_: {
-                'postgres-data': kube.PersistentVolumeClaimVolume($._postgres_pvc),
+                'postgres-data': (
+                    if $._config.postgres.usePersistentStorage
+                    then kube.PersistentVolumeClaimVolume($._postgres_pvc)
+                    else kube.EmptyDirVolume()
+                ),
             },
         };
 
-        kube.Deployment(name) + {
-            metadata+: {
-                labels: labels,
-                namespace: $._config.namespace,
-            },
-            spec+: {
-                template+: {
-                    spec: postgresPod,
+        kube.List() {
+            items: [
+                kube.Deployment(name) + {
                     metadata+: {
-                        labels: labels
+                        labels: labels,
+                        namespace: $._config.namespace,
                     },
+                    spec+: {
+                        template+: {
+                            spec: postgresPod,
+                            metadata+: {
+                                labels: labels
+                            },
+                        },
+                    }
                 },
-            },
+            ] + (if $._config.postgres.usePersistentStorage
+                 then [$._postgres_pvc] else []),
         },
 
     postgres_service:
@@ -87,7 +94,7 @@ local kube = import 'kube-libsonnet/kube.libsonnet';
         local labels = $._config.postgres.labels;
 
         kube.Service(name) + {
-            target_pod: $.postgres_deployment.spec.template,
+            target_pod: $.postgres_deployment.items[0].spec.template,
             metadata+: {
                 labels: labels,
                 namespace: $._config.namespace,
