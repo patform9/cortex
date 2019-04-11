@@ -1,7 +1,17 @@
 local kube = import 'kube-libsonnet/kube.libsonnet';
 
 {
-    _postgres_secret::
+    _postgres_pvc::
+        local name = $._config.postgres.name + '-data';
+        if $._config.postgres.usePersistentStorage
+        then kube.PersistentVolumeClaim(name) {
+            metadata+: {
+                namespace: $._config.namespace,
+            },
+            storage: $._config.postgres.volumeSize
+        } else {},
+} + {
+    postgres_secret:
         local postgres_user = $._config.postgres.user;
         local postgres_password = $._config.postgres.password;
         kube.Secret($._config.postgres.name) {
@@ -14,16 +24,6 @@ local kube = import 'kube-libsonnet/kube.libsonnet';
             }
         },
 
-    _postgres_pvc::
-        local name = $._config.postgres.name + '-data';
-        if $._config.postgres.usePersistentStorage
-        then kube.PersistentVolumeClaim(name) {
-            metadata+: {
-                namespace: $._config.namespace,
-            },
-            storage: $._config.postgres.volumeSize
-        } else {},
-} + {
     postgres_deployment:
         local name = $._config.postgres.name;
         local labels = $._config.postgres.labels;
@@ -38,9 +38,9 @@ local kube = import 'kube-libsonnet/kube.libsonnet';
 
         local env = {
             POSTGRES_DB: initial_db,
-            POSTGRES_USER: kube.SecretKeyRef($._postgres_secret,
+            POSTGRES_USER: kube.SecretKeyRef($.postgres_secret,
                                              "database_user"),
-            POSTGRES_PASSWORD: kube.SecretKeyRef($._postgres_secret,
+            POSTGRES_PASSWORD: kube.SecretKeyRef($.postgres_secret,
                                                  "database_password"),
         };
 
@@ -100,7 +100,4 @@ local kube = import 'kube-libsonnet/kube.libsonnet';
                 namespace: $._config.namespace,
             },
         },
-
-    postgres_secret:
-        $._postgres_secret,
 }
